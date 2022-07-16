@@ -101,9 +101,9 @@ void app_main(void) {
   mrbc_esp32_utils_gem_init(0);
 #ifdef CONFIG_USE_ESP32_WIFI
   printf("start WiFi (C) \n");
-  //mrbc_esp32_wifi_gem_init(0);
-  //mrbc_esp32_sntp_gem_init(0);
-  //mrbc_esp32_httpclient_gem_init(0);
+  mrbc_esp32_wifi_gem_init(0);
+  mrbc_esp32_sntp_gem_init(0);
+  mrbc_esp32_httpclient_gem_init(0);
 #endif
 #ifdef CONFIG_USE_ESP32_SDCARD
   printf("start SDcard (C) \n");

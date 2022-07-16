@@ -1,47 +1,29 @@
 # coding: utf-8
 
 # GPSの電源を入れる (高専ボードの場合に必要)
-gps_pw = GPIO.new(5, GPIO::OUT)
-gps_pw.write(0)
+GPS.power_on
 
-# GPS初期化 txPin = 17, rxPin = 16 のため uart_num = 2 とする
-#gps = UART.new(2, 9600)
+#UART 初期化
 uart = UART.new(2, 9600)
 
-# 出力を RMS のみに
-gps = GPS.new( uart )
-
-#sleep 1  #待ち時間
-#gps.write("$PMTK314,-1*04\r\n")
-#gps.write("$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n")
+# GPS 初期化
+gps = GPS.new(uart, GPS::RMS)
 
 while true
-
   if gps.dataReady?
-    
-    puts gps.status
-    puts gps.lng
-    puts gps.lat
-    puts gps.time
-
+    p gps.lng
+    p gps.lng2
+    p gps.lat
+    p gps.lat2
+    p gps.str_date
+    p gps.str_time
+    p gps.str_datetime
+    p gps.datetime
   else
-
-    puts "wait...."
-    
+    puts "wait...."    
   end
-  
-  # 入力データをclear_tx_bufferで消去する
-  #gps.clear_tx_buffer
-  #
-  # 入力データが来るのを待つ
-  #sleep 3
-  #
-  # データ取得・表示
-  #lines = gps.read_nonblock(4096).split('$').pop.split(',')
-  #
-  puts "*** #{lines} ***"
-
 end
+
 
 =begin
 ibeacon = IBeacon.new
@@ -49,16 +31,6 @@ ibeacon = IBeacon.new
 loop do
   puts "rssi: #{ibeacon.rssi}"
   puts "Dist: #{ibeacon.dist} m"
-  sleep 2
-end
-=end
-
-=begin
-ibeacon_init
-
-loop do
-  puts "rssi: #{ibeacon_rssi}"
-  puts "Dist: #{ibeacon_dist} m"
   sleep 2
 end
 =end
@@ -105,18 +77,10 @@ wlan.connect("SugiyamaLab", "epi.it.matsue-ct.jp")
 # 時刻合わせ
 puts 'start SNTP...'
 sntp = SNTP.new
-puts sprintf("%02d-%02d-%02d", sntp.year2, sntp.mon, sntp.mday)
-puts sprintf("%02d:%02d:%02d", sntp.hour,  sntp.min, sntp.sec )
+p sntp.str_date, sntp.str_time, sntp.str_datetime, sntp.datetime
 
 # 書き込み. 年(下2桁), 月, 日, 曜日, 時, 分, 秒
-rtc.write([sntp.year2,
-           sntp.mon,
-           sntp.mday,
-           sntp.wday,
-           sntp.hour,
-           sntp.min,
-           sntp.sec
-          ]) 
+rtc.write( sntp.datetime )
 
 # LCD に "Hello World" 表示
 lcd.cursor(1, 0)
@@ -129,12 +93,16 @@ while true
   
   # 時刻取得
   tt = rtc.read
-
+  p rtc.read
+  p rtc.datetime
+  
   # 時刻表示
   lcd.cursor(0, 0)
-  lcd.write_string( sprintf("%02d-%02d-%02d", tt[0], tt[1], tt[2]) )
+  lcd.write_string( rtc.str_date )
   lcd.cursor(0, 1)
-  lcd.write_string( sprintf("%02d:%02d:%02d", tt[4], tt[5], tt[6]) )
+  lcd.write_string( rtc.str_time )
+  
+  p rtc.str_date, rtc.str_time, rtc.str_datetime
   
   # 待ち時間
   sleep 0.5

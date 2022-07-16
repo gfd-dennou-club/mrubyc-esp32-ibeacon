@@ -25,7 +25,7 @@ class GPS
       @uart.write("$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n")
     end
   end
-
+  
   #データ取得とステータス判断
   def dataReady?
     # 入力データをclear_tx_bufferで消去する
@@ -35,12 +35,12 @@ class GPS
     sleep 3
     
     # データ取得・表示．最終行を取得してカンマ区切りで配列化
-    @line = gps.read_nonblock(4096).split('$').pop.split(',')    
+    @line = (@uart.read_nonblock(4096).split('$').pop).split(',')
 
     # ステータスが OK なら値をセットしておく.
-    val = 0
-    if @line[2] == "A" AND lines.size == 14
-      val = 1
+    # if @line[2] == "A" AND @line[13].size == 14
+    p @line
+#    if @line[2] == "A"
       @year= "20#{@line[9][4]}#{@line[9][5]}"
       @year2 = "#{@line[9][4]}#{@line[9][5]}"
       @mon   = "#{@line[9][2]}#{@line[9][3]}"
@@ -48,34 +48,52 @@ class GPS
       @hour  = "#{@line[1][0]}#{@line[1][1]}"
       @min   = "#{@line[1][2]}#{@line[1][3]}"
       @sec   = "#{@line[1][4]}#{@line[1][5]}"
+      # フォーマット: dddmm.mmmm
       @lat   = @line[3]
-      @lat2  = @line[4]
       @lng   = @line[5]
-      @lng2  = @line[6]      
-    end
+      # フォーマット: ddd.dddd
+      @lat2  = "#{@lat[0]}#{@lat[1]}#{@lat[2]}".to_f + "#{@lat[3]}#{@lat[4]}#{@lat[5]}#{@lat[6]}#{@lat[7]}#{@lat[8]}#{@lat[9]}}".to_f / 60.0
+      @lng2  = "#{@lng[0]}#{@lng[1]}#{@lng[2]}".to_f + "#{@lng[3]}#{@lng[4]}#{@lng[5]}#{@lng[6]}#{@lng[7]}#{@lng[8]}#{@lng[9]}}".to_f / 60.0
+      # 
+      @latSign = @line[4]
+      @lngSign = @line[6]
 
-    # 返り値
-    return val    
+      return true
+#    else
+
+      # 返り値
+#      return false
+#    end
   end
-
-  # 緯度 (latitude)
+  
+  # 緯度 (latitude) フォーマット: dddmm.mmmm
   def lat
     return @lat
   end
 
+  # 緯度 (latitude) フォーマット: ddd.dddd
+  def lat2
+    return @lat2
+  end
+  
   # 緯度は北緯?
   def latNorth?
-    return @lat2 == "N"
+    return @latSign == "N"
   end
 
-  # 経度 (longitude)
+  # 経度 (longitude)  フォーマット: dddmm.mmmm
   def lng
     return @lng
   end
 
+  # 経度 (longitude)  フォーマット: ddd.dddd
+  def lng2
+    return @lng2
+  end  
+
   # 経度は東経?
   def lngEast?
-    return @lng2 == "E"
+    return @lngSign == "E"
   end
 
   # 日付 (UTC)
@@ -96,81 +114,38 @@ class GPS
   end
 
   def hour
-    return @hour
+    return @hour.to_i
   end
 
   def min
-    return @min
+    return @min.to_i
   end    
 
   def sec
-    return @sec
-  end
-
-  def lcd_date
-    return "#{@year2}-#{@mon}-#{@day}"
-  end
-
-  def lcd_time
-    return "#{@hour}:#{min}:#{sec}"
+    return @sec.to_i
   end
 
   def datetime
-    return #{@year}#{@mon}#{@day}{@hour}#{min}#{sec}"
+    return [@year2.to_i, @mon.to_i, @day.to_i, @hour.to_i, @min.to_i, @sec.to_i]
+  end  
+
+  def str_date
+    return "#{@year2}-#{@mon}-#{@day}"
   end
 
-  def calcDist(lat0, lng0)
-    lat_del = ( (@lat - lat0.abs * 60 + (@lat - @latpos1).abs ) * 1521
-    lng_del = ( (pos[2] - pos2).abs * 60 + (pos[3] - pos3).abs ) * 1849 
+  def str_time
+    return "#{@hour}:#{min}:#{sec}"
+  end
+  
+  def str_datetime
+    return "#{@year}#{@mon}#{@day}#{@hour}#{min}#{sec}"
+  end
+
+  # 距離は北緯 35 度での値で計算!!
+  def calcDist( lat0, lng0 )
+    lat_del = ( lat0 - @lat2 ).abs *  91287.7885
+    lng_del = ( lng0 - @lng2 ).abs * 110940.5844
     gps_del = Math.sqrt(lat_del * lat_del + lng_del * lng_del)
   end
-  
-end
-
-
-# AQM0802A-RN-GBW
-#
-# I2C address : 0x3e
-
-class AQM0802A
-  
-  def initialize(i2c)
-    @i2c = i2c
-    sleep(0.1)
-    lcd_write(0x00, [0x38, 0x39, 0x14, 0x70, 0x56, 0x6c])
-    sleep(1)
-    lcd_write(0x00, [0x38, 0x0c, 0x01])
-  end
-
-  def lcd_write(opcode, data)
-    n = 0
-    while n < data.length
-      @i2c.write(0x3e, [opcode, data[n]])
-      n += 1
-    end
-  end
-
-#  def setup
-#    lcd_write(0x00, [0x38, 0x39, 0x14, 0x70, 0x56, 0x6c])
-#    sleep(1)
-#    lcd_write(0x00, [0x38, 0x0c, 0x01])
-#  end
-
-  def clear
-    lcd_write(0x00, [0x01])
-  end
-
-  def cursor(x, y)
-    lcd_write(0x00, [0x80 + (0x40 * y + x)])
-  end
-
-  def write_string(s)
-    a = Array.new
-    s.length.times do |n|
-      a.push(s[n].ord)
-    end
-    lcd_write(0x40, a)
-  end
 
 end
-

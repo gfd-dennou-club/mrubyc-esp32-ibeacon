@@ -14,7 +14,7 @@ menu "mrubyc-esp32 Configuration"
     config USE_ESP32_IBEACON
         bool "USE ESP32 iBeacon (with Bluetooth)"
         default n
-
+		
     choice IBEACON_MODE
         bool "iBeacon Mode"
         default IBEACON_SENDER
