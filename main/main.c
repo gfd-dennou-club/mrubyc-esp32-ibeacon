@@ -2,6 +2,7 @@
 
 #include "esp_log.h"
 #include "esp_spiffs.h"
+#include "nvs_flash.h"
 #include "mrubyc.h"
 
 //*********************************************
@@ -12,11 +13,23 @@
 #include "mrbc_esp32_adc.h"
 #include "mrbc_esp32_uart.h"
 #include "mrbc_esp32_i2c.h"
+#include "mrbc_esp32_spi.h"
+#include "mrbc_esp32_sleep.h"
+#include "mrbc_esp32_utils.h"
+#ifdef CONFIG_USE_ESP32_WIFI
 #include "mrbc_esp32_wifi.h"
 #include "mrbc_esp32_sntp.h"
 #include "mrbc_esp32_http_client.h"
-#include "mrbc_esp32_sleep.h"
-#include "mrbc_esp32_spi.h"
+#endif
+#ifdef CONFIG_USE_ESP32_SDCARD
+#include "mrbc_esp32_dirent.h"
+#include "mrbc_esp32_stdio.h"
+#include "mrbc_esp32_sdspi.h"
+#endif
+#ifdef CONFIG_USE_ESP32_IBEACON
+#include "mrbc_esp32_ibeacon.h"
+#endif
+
 
 //*********************************************
 // ENABLE MASTER files written by mruby/c
@@ -67,6 +80,7 @@ uint8_t * load_mrb_file(const char *filename)
 
 void app_main(void) {
 
+  nvs_flash_init();
   mrbc_init(memory_pool, MEMORY_SIZE);
 
   printf("start GPIO (C)\n");
@@ -79,14 +93,28 @@ void app_main(void) {
   mrbc_esp32_i2c_gem_init(0);
   printf("start UART (C)\n");
   mrbc_esp32_uart_gem_init(0);
-  printf("start WiFi (C) \n");
-  mrbc_esp32_wifi_gem_init(0);
-  mrbc_esp32_sntp_gem_init(0);
-  mrbc_esp32_httpclient_gem_init(0);
-  printf("start SLEEP (C) \n");
-  mrbc_esp32_sleep_gem_init(0);
   printf("start SPI (C) \n");
   mrbc_esp32_spi_gem_init(0);
+  printf("start SLEEP (C) \n");
+  mrbc_esp32_sleep_gem_init(0);
+  printf("start Utils (C) \n");
+  mrbc_esp32_utils_gem_init(0);
+#ifdef CONFIG_USE_ESP32_WIFI
+  printf("start WiFi (C) \n");
+  //mrbc_esp32_wifi_gem_init(0);
+  //mrbc_esp32_sntp_gem_init(0);
+  //mrbc_esp32_httpclient_gem_init(0);
+#endif
+#ifdef CONFIG_USE_ESP32_SDCARD
+  printf("start SDcard (C) \n");
+  mrbc_esp32_dirent_gem_init(0);
+  mrbc_esp32_stdio_gem_init(0);
+  mrbc_esp32_sdspi_gem_init(0);
+#endif
+#ifdef CONFIG_USE_ESP32_IBEACON
+  printf("start iBeacon (C) \n");
+  mrbc_esp32_ibeacon_gem_init(0);
+#endif
 
 //***********************************************************
 // BEGIN COMPONENTS 2: INCLUDE CLASS files associated with mruby/c
