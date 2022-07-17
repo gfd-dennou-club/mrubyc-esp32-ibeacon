@@ -4,13 +4,19 @@
 
 class GPS
 
-  DEFAULT = 0
-  RMS     = 1
+  DEFAULTmode = 0
+  RMSmode     = 1
 
-  #電源投入 (松江高専ボードのみ)
+  #電源ON (松江高専ボードのみ)
   def power_on()
     gps_pw = GPIO.new(5, GPIO::OUT)
     gps_pw.write(0)
+  end
+
+  #電源OFF (松江高専ボードのみ)
+  def power_off()
+    gps_pw = GPIO.new(5, GPIO::OUT)
+    gps_pw.write(1)
   end
 
   #初期化
@@ -19,9 +25,9 @@ class GPS
     sleep 1
 
     #出力モードの切替え
-    if mode == GPS::DEFAULT
+    if mode == GPS::DEFAULTmode
       @uart.write("$PMTK314,-1*04\r\n")
-    elsif mode == GPS::RMS
+    elsif mode == GPS::RMSmode
       @uart.write("$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n")
     end
   end
@@ -40,7 +46,7 @@ class GPS
     # ステータスが OK なら値をセットしておく.
     # if @line[2] == "A" AND @line[13].size == 14
     p @line
-#    if @line[2] == "A"
+    if @line[2] == "A"
       @year= "20#{@line[9][4]}#{@line[9][5]}"
       @year2 = "#{@line[9][4]}#{@line[9][5]}"
       @mon   = "#{@line[9][2]}#{@line[9][3]}"
@@ -48,32 +54,34 @@ class GPS
       @hour  = "#{@line[1][0]}#{@line[1][1]}"
       @min   = "#{@line[1][2]}#{@line[1][3]}"
       @sec   = "#{@line[1][4]}#{@line[1][5]}"
-      # フォーマット: dddmm.mmmm
+
       @lat   = @line[3]
+      @latDeg  = "#{@lat[0]}#{@lat[1]}".to_f
+      @latMin  = "#{@lat[2]}#{@lat[3]}#{@lat[4]}#{@lat[5]}#{@lat[6]}#{@lat[7]}#{@lat[8]}}".to_f
+
       @lng   = @line[5]
-      # フォーマット: ddd.dddd
-      @lat2  = "#{@lat[0]}#{@lat[1]}#{@lat[2]}".to_f + "#{@lat[3]}#{@lat[4]}#{@lat[5]}#{@lat[6]}#{@lat[7]}#{@lat[8]}#{@lat[9]}}".to_f / 60.0
-      @lng2  = "#{@lng[0]}#{@lng[1]}#{@lng[2]}".to_f + "#{@lng[3]}#{@lng[4]}#{@lng[5]}#{@lng[6]}#{@lng[7]}#{@lng[8]}#{@lng[9]}}".to_f / 60.0
-      # 
+      @lngDeg  = "#{@lng[0]}#{@lng[1]}#{@lng[2]}".to_f 
+      @lngMin  = "#{@lng[3]}#{@lng[4]}#{@lng[5]}#{@lng[6]}#{@lng[7]}#{@lng[8]}#{@lng[9]}}".to_f
+
       @latSign = @line[4]
       @lngSign = @line[6]
 
       return true
-#    else
+    else
 
       # 返り値
-#      return false
-#    end
+      return false
+    end
   end
   
-  # 緯度 (latitude) フォーマット: dddmm.mmmm
+  # 緯度 (latitude)．文字列を返す．フォーマット: dddmm.mmmm 
   def lat
     return @lat
   end
 
-  # 緯度 (latitude) フォーマット: ddd.dddd
-  def lat2
-    return @lat2
+  # 緯度 (latitude)．数字の配列を返す
+  def latDegMin
+    return [@latDeg, @latMin]
   end
   
   # 緯度は北緯?
@@ -81,19 +89,24 @@ class GPS
     return @latSign == "N"
   end
 
-  # 経度 (longitude)  フォーマット: dddmm.mmmm
+  # 経度 (longitude)．文字列を返す．フォーマット: dddmm.mmmm 
   def lng
     return @lng
   end
 
-  # 経度 (longitude)  フォーマット: ddd.dddd
-  def lng2
-    return @lng2
+  # 経度 (longitude)．数字の配列を返す
+  def lngDegMin
+    return [@lngDeg, @lngMin]
   end  
 
   # 経度は東経?
   def lngEast?
     return @lngSign == "E"
+  end
+
+  #緯度経度
+  def DegMin
+    return [@latDeg, @latMin, @lngDeg, @lngMin]
   end
 
   # 日付 (UTC)
@@ -141,11 +154,5 @@ class GPS
     return "#{@year}#{@mon}#{@day}#{@hour}#{min}#{sec}"
   end
 
-  # 距離は北緯 35 度での値で計算!!
-  def calcDist( lat0, lng0 )
-    lat_del = ( lat0 - @lat2 ).abs *  91287.7885
-    lng_del = ( lng0 - @lng2 ).abs * 110940.5844
-    gps_del = Math.sqrt(lat_del * lat_del + lng_del * lng_del)
-  end
-
+  
 end
