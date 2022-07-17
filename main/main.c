@@ -14,17 +14,15 @@
 #include "mrbc_esp32_uart.h"
 #include "mrbc_esp32_i2c.h"
 #include "mrbc_esp32_spi.h"
+#include "mrbc_esp32_dirent.h"
+#include "mrbc_esp32_stdio.h"
+#include "mrbc_esp32_sdspi.h"
 #include "mrbc_esp32_sleep.h"
 #include "mrbc_esp32_utils.h"
 #ifdef CONFIG_USE_ESP32_WIFI
 #include "mrbc_esp32_wifi.h"
 #include "mrbc_esp32_sntp.h"
 #include "mrbc_esp32_http_client.h"
-#endif
-#ifdef CONFIG_USE_ESP32_SDCARD
-#include "mrbc_esp32_dirent.h"
-#include "mrbc_esp32_stdio.h"
-#include "mrbc_esp32_sdspi.h"
 #endif
 #ifdef CONFIG_USE_ESP32_IBEACON
 #include "mrbc_esp32_ibeacon.h"
@@ -95,6 +93,10 @@ void app_main(void) {
   mrbc_esp32_uart_gem_init(0);
   printf("start SPI (C) \n");
   mrbc_esp32_spi_gem_init(0);
+  printf("start SDcard (C) \n");
+  mrbc_esp32_dirent_gem_init(0);
+  mrbc_esp32_stdio_gem_init(0);
+  mrbc_esp32_sdspi_gem_init(0);
   printf("start SLEEP (C) \n");
   mrbc_esp32_sleep_gem_init(0);
   printf("start Utils (C) \n");
@@ -104,12 +106,6 @@ void app_main(void) {
   mrbc_esp32_wifi_gem_init(0);
   mrbc_esp32_sntp_gem_init(0);
   mrbc_esp32_httpclient_gem_init(0);
-#endif
-#ifdef CONFIG_USE_ESP32_SDCARD
-  printf("start SDcard (C) \n");
-  mrbc_esp32_dirent_gem_init(0);
-  mrbc_esp32_stdio_gem_init(0);
-  mrbc_esp32_sdspi_gem_init(0);
 #endif
 #ifdef CONFIG_USE_ESP32_IBEACON
   printf("start iBeacon (C) \n");

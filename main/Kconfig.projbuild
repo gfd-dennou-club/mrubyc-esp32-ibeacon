@@ -7,10 +7,6 @@ menu "mrubyc-esp32 Configuration"
         bool "USE ESP32 WIFI"
 	default y
 
-    config USE_ESP32_SDCARD
-        bool "USE ESP32 SD Card"
-	default y
-
     config USE_ESP32_IBEACON
         bool "USE ESP32 iBeacon (with Bluetooth)"
         default n

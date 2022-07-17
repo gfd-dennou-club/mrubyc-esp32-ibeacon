@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "nvs_flash.h"
+//#include "nvs_flash.h"
 
 #include "esp_bt.h"
 #include "esp_gap_ble_api.h"
@@ -42,8 +42,13 @@
 static const char* DEMO_TAG = "IBEACON_DEMO";
 extern esp_ble_ibeacon_vendor_t vendor_config;
 
+/*
 int   rssi;
 float dist;
+uint16_t major;
+uint16_t minor;
+*/
+int info[4];
 
 ///Declare static functions
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
@@ -116,17 +121,20 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                 uint16_t major = ENDIAN_CHANGE_U16(ibeacon_data->ibeacon_vendor.major);
                 uint16_t minor = ENDIAN_CHANGE_U16(ibeacon_data->ibeacon_vendor.minor);
 		int txpower = ibeacon_data->ibeacon_vendor.measured_power;
-		rssi = scan_result->scan_rst.rssi;
-		
-                //ESP_LOGI(DEMO_TAG, "Major: 0x%04x (%d)", major, major);
-                //ESP_LOGI(DEMO_TAG, "Minor: 0x%04x (%d)", minor, minor);
-                //ESP_LOGI(DEMO_TAG, "Measured power (RSSI at a 1m distance):%d dbm", txpower );
-                //ESP_LOGI(DEMO_TAG, "RSSI of packet:%d dbm", rssi);
-
-		if (major == 11111 && minor == 22222){
-		  dist = pow(10.0, (txpower - rssi) / 20.0);
-		  //printf("Distance : %f m \n", dist);
-		}
+		int rssi = scan_result->scan_rst.rssi;
+		int dist = pow(10.0, (txpower - rssi) / 20.0) * 1000.0; 
+		  
+		info[0] = major;
+		info[1] = minor;
+		info[2] = rssi;
+		info[3] = dist;
+		/*		
+                ESP_LOGI(DEMO_TAG, "Major: 0x%04x (%d)", major, major);
+                ESP_LOGI(DEMO_TAG, "Minor: 0x%04x (%d)", minor, minor);
+                ESP_LOGI(DEMO_TAG, "Measured power (RSSI at a 1m distance):%d dbm", txpower );
+                ESP_LOGI(DEMO_TAG, "RSSI of packet:%d dbm", rssi);
+                ESP_LOGI(DEMO_TAG, "Distance:%d [mm]", dist);
+		*/
             }
             break;
         default:
@@ -183,7 +191,7 @@ void ble_ibeacon_init(void)
 
 void ble_ibeacon_init(void)
 {
-    ESP_ERROR_CHECK(nvs_flash_init());
+  //    ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     esp_bt_controller_init(&bt_cfg);
@@ -214,17 +222,22 @@ static void mrbc_esp32_ibeacon_init(struct VM* vm, mrb_value *v, int argc){
   ble_ibeacon_init();
 }
 
-static void mrbc_esp32_ibeacon_rssi(struct VM* vm, mrb_value *v, int argc){
-  SET_INT_RETURN(rssi);
-}
+static void mrbc_esp32_ibeacon_info(struct VM* vm, mrb_value *v, int argc){
 
-static void mrbc_esp32_ibeacon_dist(struct VM* vm, mrb_value *v, int argc){
-  SET_FLOAT_RETURN(dist);
+  // 変数定義
+  mrbc_value result = mrbc_array_new(vm, 4);
+  
+  // Array インスタンス result に Fixnum インスタンスとしてデータをセット
+  for ( int x = 0; x < 4; ++x ) {
+    mrbc_array_set(&result, x, &mrbc_fixnum_value(info[x]));
+  }
+  
+  // Array インスタンス result を本メソッドの返り値としてセット
+  SET_RETURN(result);
 }
 
 void mrbc_esp32_ibeacon_gem_init(struct VM* vm)
 {
   mrbc_define_method(0, mrbc_class_object, "ibeacon_init", mrbc_esp32_ibeacon_init);  
-  mrbc_define_method(0, mrbc_class_object, "ibeacon_rssi", mrbc_esp32_ibeacon_rssi);  
-  mrbc_define_method(0, mrbc_class_object, "ibeacon_dist", mrbc_esp32_ibeacon_dist);  
+  mrbc_define_method(0, mrbc_class_object, "ibeacon_info", mrbc_esp32_ibeacon_info);  
 }
