@@ -63,6 +63,13 @@ for file in cfiles:
     if not os.path.isfile( dst ):
         os.symlink( src, dst )
         print( src+" -> "+dst )
+
+    src = "../"+file[0]+"/font.h"
+    dst = dst_c+"/font.h"
+    if os.path.isfile( file[0]+"/font.h" ):
+        if not os.path.isfile( dst ):
+            os.symlink( src, dst )
+            print( src+" -> "+dst )        
         
 # ファイルの全てを読み込み
 #
