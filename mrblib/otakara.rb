@@ -1,11 +1,11 @@
 # coding: utf-8
 # 宝探し用
 #
-class TreasureHunt
+class Otakara
 
   def initialize( wlan )
     @wlan = wlan
-    @store = []
+    @urls = []
   end
 
   # 宝の位置
@@ -42,17 +42,18 @@ class TreasureHunt
   end  
   
   # 宝の距離 [m] 計算．北緯 35 度での値で計算!!  入力された緯度経度を利用．
-  def calcDist( pos )
+  def calcDist( posGet, pos )
     latDist = (
-                ( @latDeg - pos[0]).abs * 60 
-              + ( @latMin - pos[1]).abs
+                ( posGet[0] - pos[0]).abs * 60 
+              + ( posGet[1] - pos[1]).abs
               ) * 1521
 
     lngDist = (
-                ( @lngDeg - pos[2]).abs * 60 
-              + ( @lngMin - pos[3]).abs
+                ( posGet[2] - pos[2]).abs * 60 
+              + ( posGet[3] - pos[3]).abs
               ) * 1849
     @dist = Math.sqrt(latDist * latDist + lngDist * lngDist)
+    return @dist
   end
   
   def dist
@@ -64,13 +65,14 @@ class TreasureHunt
     @urls.push( "https://pluto.epi.it.matsue-ct.jp/gps/monitoring.php?hostname=#{host}&time=#{datetime}&lat=#{lat}&lng=#{lng}&utc=1" )
     
     # ネットワークへ送る
-    if @wlan.connected?
+    if @wlan.is_connected?
       @urls.each do |url|
+        p url
         @wlan.access( url )
       end
       #配列初期化
       @urls = []
     end
   end
-  
+
 end

@@ -1,4 +1,19 @@
 # coding: utf-8
+=begin
+loop do
+  puts "Hello World from ESP32"
+  sleep 10
+end
+=end
+
+=begin
+
+##############################################################
+#
+# 工作教室：iBeacon 課題
+#
+##############################################################
+
 
 # Minor の番号を全て集めると，暗号が解ける
 # 数字暗号：https://cotobasearch.com/encrypt/number
@@ -40,8 +55,8 @@ loop do
 
   if ibeacon.major == 11111
 
-    # 3m を切っていれば LCD 表示. LED 4 つ点灯
-    if ibeacon.dist < 3.0
+    # 10 m を切っていれば LCD 表示. LED 4 つ点灯
+    if ibeacon.dist < 10.0
       lcd.clear
       lcd.cursor(0, 0)
       lcd.write_string( ibeacon.minor.to_s )
@@ -58,44 +73,206 @@ loop do
 
         if sw19.read == 1
           p "PWM ON"
-#        pwm15.freq( 440 )
-#        pwm15.duty(512)
+        pwm15.freq( 440 )
+        pwm15.duty(512)
         else
           p "PWM OFF"
-#        pwm15.freq( 440 )
-#        pwm15.duty(0)
+        pwm15.freq( 440 )
+        pwm15.duty(0)
         end
 
         led26.on
         led25.on
         led33.on
         led32.on
-      end
-
-      sleep 5
-      
-    # 遠ければ消灯
-    else
-      
-      led13.off
-      led14.off
-      led12.off
-      led27.off
-      led26.off
-      led25.off
-      led33.off
-      led32.off            
+      end      
     end
+
+    sleep 1
   end
-    
+
   sleep 0.05
+  
+  # 消灯
+  led13.off
+  led14.off
+  led12.off
+  led27.off
+  led26.off
+  led25.off
+  led33.off
+  led32.off            
+  
+end
+=end
+
+
+#=begin
+
+##############################################################
+#
+# オープンキャンパス：GPS 課題
+#
+##############################################################
+
+# GPSの電源を入れる (高専ボードの場合に必要)
+GPS.power_on
+
+#UART 初期化
+uart = UART.new(2, 9600)
+
+# GPS 初期化
+gps = GPS.new(uart, GPS::RMSmode)
+
+#I2C 初期化
+i2c = I2C.new(22, 21)
+
+# LCD 初期化
+lcd = AQM0802A.new(i2c)
+
+# Wi-Fi 初期化
+wlan = WLAN.new('STA', WLAN::ACTIVE)
+
+# WiFiの接続
+puts 'start connect....'
+wlan.connect("SSID", "passwd")
+
+# スイッチ初期化
+sw34 = GPIO.new( 34, GPIO::IN, GPIO::PULL_UP)
+sw35 = GPIO.new( 35, GPIO::IN, GPIO::PULL_UP)
+sw18 = GPIO.new( 18, GPIO::IN, GPIO::PULL_UP)
+sw19 = GPIO.new( 19, GPIO::IN, GPIO::PULL_UP)
+
+# LED 初期化
+led13 = GPIO.new( 13, GPIO::OUT )
+led12 = GPIO.new( 12, GPIO::OUT )
+led14 = GPIO.new( 14, GPIO::OUT )
+led27 = GPIO.new( 27, GPIO::OUT )
+led26 = GPIO.new( 26, GPIO::OUT )
+led25 = GPIO.new( 25, GPIO::OUT )
+led33 = GPIO.new( 33, GPIO::OUT )
+led32 = GPIO.new( 32, GPIO::OUT )
+
+# PWM 有効化
+pwm15 = PWM.new( 15 )
+
+# 宝探しクラスの初期化
+takara = Otakara.new( wlan )
+
+while true
+  if gps.is_ready?
+
+    #音を止める
+    pwm15.freq( 440 )
+    pwm15.duty(0)
+
+    #消灯
+    led13.off
+    led14.off
+    led12.off
+    led27.off
+    led26.off
+    led25.off
+    led33.off
+    led32.off
+
+    # スイッチ操作
+    if sw34.read == 0 && sw35.read == 0 && sw18.read == 0
+      takara.calcDist( gps.pos, takara.pos1 )
+      led13.on
+    end
+    if sw34.read == 1 && sw35.read == 0 && sw18.read == 0
+      takara.calcDist( gps.pos, takara.pos2 )
+      led12.on
+    end
+    if sw34.read == 0 && sw35.read == 1 && sw18.read == 0
+      takara.calcDist( gps.pos, takara.pos3 )
+      led14.on
+    end
+    if sw34.read == 1 && sw35.read == 1 && sw18.read == 0
+      takara.calcDist( gps.pos, takara.pos4 )
+      led27.on
+    end
+    if sw34.read == 0 && sw35.read == 0 && sw18.read == 1
+      takara.calcDist( gps.pos, takara.pos5 )
+      led26.on
+    end
+    if sw34.read == 1 && sw35.read == 0 && sw18.read == 1
+      takara.calcDist( gps.pos, takara.pos6 )
+      led25.on
+    end
+    if sw34.read == 0 && sw35.read == 1 && sw18.read == 1
+      takara.calcDist( gps.pos, takara.pos7 )
+      led33.on
+    end
+    if sw34.read == 1 && sw35.read == 1 && sw18.read == 1
+      takara.calcDist( gps.pos, takara.pos8 )
+      led32.on
+    end
+
+    #表示
+    lcd.clear
+    lcd.cursor(0, 0)
+    lcd.write_string("otakara")
+    lcd.cursor(0, 1)
+    lcd.write_string( takara.dist.to_s )
+
+    # 近ければ音を鳴らす
+    if takara.dist < 20
+      if sw19.read == 1
+        # 音を鳴らす
+        pwm15.freq( 440 )
+        pwm15.duty(512)
+      else
+        #音を止める
+        pwm15.freq( 440 )
+        pwm15.duty(0)
+      end
+    end
+
+    # 時刻・緯度・経度を送る
+    p gps.str_datetime
+    if gps.min % 5 == 0 && gps.sec < 3
+      takara.send( "hogehoge2", gps.str_datetime, gps.lat, gps.lng )    
+    end
+    
+  else
+
+    #音を止める
+    pwm15.freq( 440 )
+    pwm15.duty(0)
+
+    #消灯
+    led13.off
+    led14.off
+    led12.off
+    led27.off
+    led26.off
+    led25.off
+    led33.off
+    led32.off
+
+    #表示
+    lcd.clear
+    lcd.cursor(0, 0)
+    lcd.write_string("xxxxxxxx")
+  end
+  
 end
 
+#=end
 
 
 
 
 =begin
+
+##############################################################
+#
+# オープンキャンパス：CO2 計測課題
+#
+##############################################################
+
 # スイッチ初期化
 sw34 = GPIO.new( 34, GPIO::IN, GPIO::PULL_UP)
 sw35 = GPIO.new( 35, GPIO::IN, GPIO::PULL_UP)
@@ -132,7 +309,7 @@ wlan = WLAN.new('STA', WLAN::ACTIVE)
 
 # WiFiの接続
 puts 'start connect....'
-wlan.connect("SugiyamaLab", "epi.it.matsue-ct.jp")
+wlan.connect("SSID", "passwd")
 
 # 時刻合わせ
 sntp = SNTP.new
@@ -142,54 +319,38 @@ rtc.write( sntp.datetime )
 
 # 観測
 loop do
-  if scd30.ready?
+  if scd30.is_ready?
 
     puts "CO2         : #{scd30.co2} ppm"
     puts "Temperature : #{scd30.temp} C"
     puts "Humidity    : #{scd30.humi} %"
 
-    # 音を鳴らす
-    if scd30.co2 > 1500
+    # LED, 音を鳴らす
+    if scd30.co2 > 800
+
       led13.on
       led14.on
-      led12.on
-      led27.on
-      led26.on
-      led25.on
-      led33.on
-      led32.on
-
-      if sw19.read == 1
-        pwm15.freq( 440 )
-        pwm15.duty(512)
-      else
-        pwm15.freq( 440 )
-        pwm15.duty(0)
-      end
-
-    elsif scd30.co2 > 1000
-      led13.on
-      led12.on
       led26.on
       led33.on
-      led13.on
       
-    else
-      led13.off
-      led14.off
-      led12.off
-      led27.off
-      led26.off
-      led25.off
-      led33.off
-      led32.off
+      if scd30.co2 > 1500
 
+        led12.on
+        led27.on
+        led25.on
+        led32.on
+
+        if sw19.read == 1
+          pwm15.freq( 440 )
+          pwm15.duty(512)
+        end
+      end
     end
-
+    
     # 時刻・緯度・経度を送る
-    url = "https://pluto.epi.it.matsue-ct.jp/iotex2/monitoring3.php?hostname=hogehoge&time=#{rtc.str_datetime}&temp=#{scd30.temp}&co2=#{scd30.co2}"
+    url = "https://pluto.epi.it.matsue-ct.jp/iotex2/monitoring3.php?hostname=hogehoge&time=#{rtc.str_datetime}&temp=#{scd30.temp}&eco2=#{scd30.co2}"
     p url
-    #    wlan.access( url )
+    wlan.access( url )
     
     #表示
     lcd.clear
@@ -197,140 +358,40 @@ loop do
     lcd.write_string( rtc.str_time.to_s )
     lcd.cursor(0, 1)
     lcd.write_string( scd30.co2.to_s )
+
   end
 
-  sleep( 10 )
-end
+  # 少し待つ
+  sleep 5
 
+  # LED 消灯
+  led13.off
+  led14.off
+  led12.off
+  led27.off
+  led26.off
+  led25.off
+  led33.off
+  led32.off
+
+  # 音を止める
+  pwm15.freq( 440 )
+  pwm15.duty(0)
+  
+end
 =end
 
+
+
 =begin
-# GPSの電源を入れる (高専ボードの場合に必要)
-GPS.power_on
-
-#UART 初期化
-uart = UART.new(2, 9600)
-
-# GPS 初期化
-gps = GPS.new(uart, GPS::RMSmode)
-
-#I2C 初期化
-i2c = I2C.new(22, 21)
-
-# LCD 初期化
-lcd = AQM0802A.new(i2c)
 
 # Wi-Fi 初期化
 wlan = WLAN.new('STA', WLAN::ACTIVE)
 
 # WiFiの接続
 puts 'start connect....'
-wlan.connect("SugiyamaLab", "epi.it.matsue-ct.jp")
+wlan.connect("SSID", "passwd")
 
-# スイッチ初期化
-sw34 = GPIO.new( 34, GPIO::IN, GPIO::PULL_UP)
-sw35 = GPIO.new( 35, GPIO::IN, GPIO::PULL_UP)
-sw18 = GPIO.new( 18, GPIO::IN, GPIO::PULL_UP)
-sw19 = GPIO.new( 19, GPIO::IN, GPIO::PULL_UP)
-
-# LED 初期化
-led13 = GPIO.new( 13, GPIO::OUT )
-led12 = GPIO.new( 12, GPIO::OUT )
-led14 = GPIO.new( 14, GPIO::OUT )
-led27 = GPIO.new( 27, GPIO::OUT )
-led26 = GPIO.new( 26, GPIO::OUT )
-led25 = GPIO.new( 25, GPIO::OUT )
-led33 = GPIO.new( 33, GPIO::OUT )
-led32 = GPIO.new( 32, GPIO::OUT )
-
-# PWM 有効化
-pwm15 = PWM.new( 15 )
-
-# 宝探しクラスの初期化
-takara = TreasureHunt.new( wlan )
-
-while true
-  if gps.dataReady?
-
-    if sw34.read == 0 && sw35.read == 0 && sw18.read == 0
-      led13.on
-      takara.calcDist( takara.pos1 )
-    end
-    if sw34.read == 1 && sw35.read == 0 && sw18.read == 0
-      led12.on
-      takara.calcDist( takara.pos2 )
-    end
-    if sw34.read == 0 && sw35.read == 1 && sw18.read == 0
-      led14.on
-      takara.calcDist( takara.pos3 )
-    end
-    if sw34.read == 1 && sw35.read == 1 && sw18.read == 0
-      led27.on
-      takara.calcDist( takara.pos4 )
-    end
-    if sw34.read == 0 && sw35.read == 0 && sw18.read == 1
-      led26.on
-      takara.calcDist( takara.pos5 )
-    end
-    if sw34.read == 1 && sw35.read == 0 && sw18.read == 1
-      led25.on
-      takara.calcDist( takara.pos6 )
-    end
-    if sw34.read == 0 && sw35.read == 1 && sw18.read == 1
-      led33.on
-      takara.calcDist( takara.pos7 )
-    end
-    if sw34.read == 1 && sw35.read == 1 && sw18.read == 1
-      led32.on
-      takara.calcDist( takara.pos8 )
-    end
-
-    # 音を鳴らす
-    if takara.dist < 10
-      if sw19.read == 1
-        pwm15.freq( 440 )
-        pwm15.duty(512)
-      else
-        pwm15.freq( 440 )
-        pwm15.duty(0)
-      end
-    end
-
-    # 時刻・緯度・経度を送る
-    takara.send( "hogehoge", gps.datetime, gps.lat, gps.lng )
-    
-    #表示
-    lcd.clear
-    lcd.cursor(0, 0)
-    lcd.write_string("otakara")
-    lcd.cursor(0, 1)
-    lcd.write_string( gps.dist )
-
-    #消灯
-    led13.off
-    led14.off
-    led12.off
-    led27.off
-    led26.off
-    led25.off
-    led33.off
-    led32.off
-
-    sleep 5
- 
-  else
-
-    #表示
-    lcd.clear
-    lcd.cursor(0, 0)
-    lcd.write_string("xxxxxxxx")
-  end
-end
-
-=end
-
-
-=begin
 # GPSの電源を入れる (高専ボードの場合に必要)
 GPS.power_on
 
@@ -340,8 +401,16 @@ uart = UART.new(2, 9600)
 # GPS 初期化
 gps = GPS.new(uart, GPS::RMSmode)
 
+# 宝探しクラスの初期化
+takara = Otakara.new( wlan )
+
 while true
-  if gps.dataReady?
+  if gps.is_ready?
+
+    p gps.pos
+    p takara.pos1 
+    p takara.calcDist( gps.pos, takara.pos1 )
+    
     p gps.lng
     p gps.lngDegMin
     p gps.lat
@@ -404,7 +473,7 @@ wlan = WLAN.new('STA', WLAN::ACTIVE)
 
 # WiFiの接続
 puts 'start connect....'
-wlan.connect("SugiyamaLab", "epi.it.matsue-ct.jp")
+wlan.connect("SSID", "passwd")
 
 # 時刻合わせ
 puts 'start SNTP...'
