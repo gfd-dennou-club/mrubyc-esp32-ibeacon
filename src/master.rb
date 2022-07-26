@@ -1,4 +1,139 @@
+=begin
+puts("SHT35 HumiditySensor")
+
+i2c = I2C.new(22, 21)
+sht35 = SHT35.new( i2c )
+
+while true
+  if sht35.is_ready?
+    puts sprintf( "Temperature:%5.1f ", sht35.temp )
+    puts sprintf( "Humidity:%5.1f ",    sht35.humi )
+  end
+  sleep 1
+end
+=end
+
+i2c = I2C.new(22, 21)
+sht35 = SHT35.new(i2c)
+lcd = AQM0802A.new(i2c)
+
+while true do
+  if sht35.is_ready?
+    p "temp", sht35.temp
+    p "humi", sht35.humi
+  end
+  sleep(1)
+end
+
+
+=begin
+ibeacon = IBeacon.new 
+
+led13 = GPIO.new( 13, GPIO::OUT )
+led12 = GPIO.new( 12, GPIO::OUT )
+led14 = GPIO.new( 14, GPIO::OUT )
+led27 = GPIO.new( 27, GPIO::OUT )
+led26 = GPIO.new( 26, GPIO::OUT )
+led25 = GPIO.new( 25, GPIO::OUT )
+led33 = GPIO.new( 33, GPIO::OUT )
+led32 = GPIO.new( 32, GPIO::OUT )
+
+i2c = I2C.new(22, 21)
+
+lcd = AQM0802A.new(i2c)
+
+sw34 = GPIO.new( 34, GPIO::IN, GPIO::PULL_UP)
+sw35 = GPIO.new( 35, GPIO::IN, GPIO::PULL_UP)
+sw18 = GPIO.new( 18, GPIO::IN, GPIO::PULL_UP)
+sw19 = GPIO.new( 19, GPIO::IN, GPIO::PULL_UP)
+
+pwm1 = PWM.new( 15 )
+
+
+while true do
+  ibeacon.get
+  if ibeacon.major == 11111
+    if ibeacon.dist < 10
+      led13.write(1)
+      led12.write(0)
+      led14.write(1)
+      led27.write(0)
+      led26.write(1)
+      led25.write(0)
+      led33.write(1)
+      led32.write(1)
+      lcd.cursor(0, 0)
+      lcd.write_string("        ")
+      lcd.cursor(0, 0)
+      lcd.write_string((ibeacon.minor).to_s)
+      lcd.cursor(0, 1)
+      lcd.write_string("        ")
+      lcd.cursor(0, 1)
+      lcd.write_string((ibeacon.dist).to_s)
+      if ibeacon.dist < 1
+        led13.write(1)
+        led12.write(1)
+        led14.write(1)
+        led27.write(1)
+        led26.write(1)
+        led25.write(1)
+        led33.write(1)
+        led32.write(1)
+        if (sw34.read == 0) && (sw35.read == 0) && (sw18.read == 0) && (sw19.read == 1)
+          pwm1.freq(261)
+          pwm1.duty(512)
+        end
+      end
+    end
+    sleep(1)
+  end
+  led13.write(0)
+  led12.write(0)
+  led14.write(0)
+  led27.write(0)
+  led26.write(0)
+  led25.write(0)
+  led33.write(0)
+  led32.write(0)
+  pwm1.duty(0)
+  sleep(0.05)
+end
+=end
 # coding: utf-8
+
+#I2C 初期化
+i2c = I2C.new(22, 21)
+
+# LCD 初期化
+lcd = AQM0802A.new(i2c)
+
+# A/D 変換 初期化
+adc = ADC.new( 39, ADC::ATTEN_11DB, ADC::WIDTH_12BIT )
+
+#温度計測用変数初期化
+B = 3435.0
+To = 25.0
+V = 3300.0
+Rref = 10.0
+
+while true
+  voltage = adc.read()
+  temp = 1.0 / ( 1.0 / B * Math.log( (V - voltage) / (voltage/ Rref) / Rref) + 1.0 / (To + 273.0)) - 273.0
+  puts "#{voltage} mV, #{temp} K"
+
+  lcd.clear
+  lcd.cursor(0, 0)
+  lcd.write_string( "Temp:" )
+  lcd.cursor(0, 1)
+  lcd.write_string( temp.to_s )
+
+  sleep(10)
+end
+
+
+
+
+
 =begin
 loop do
   puts "Hello World from ESP32"
@@ -107,7 +242,7 @@ end
 =end
 
 
-#=begin
+=begin
 
 ##############################################################
 #
@@ -260,7 +395,7 @@ while true
   
 end
 
-#=end
+=end
 
 
 
@@ -309,7 +444,7 @@ wlan = WLAN.new('STA', WLAN::ACTIVE)
 
 # WiFiの接続
 puts 'start connect....'
-wlan.connect("SSID", "passwd")
+wlan.connect("s001", "z4601gb3j0t7g")
 
 # 時刻合わせ
 sntp = SNTP.new
@@ -350,7 +485,7 @@ loop do
     # 時刻・緯度・経度を送る
     url = "https://pluto.epi.it.matsue-ct.jp/iotex2/monitoring3.php?hostname=hogehoge&time=#{rtc.str_datetime}&temp=#{scd30.temp}&eco2=#{scd30.co2}"
     p url
-    wlan.access( url )
+#    wlan.access( url )
     
     #表示
     lcd.clear
