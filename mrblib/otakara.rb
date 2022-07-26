@@ -7,7 +7,7 @@ class Otakara
     @wlan = wlan
     @urls = []
   end
-
+=begin
   # 宝の位置
   def pos1
     return [35,29.8100,133,1.5250]
@@ -39,7 +39,8 @@ class Otakara
 
   def pos8
     return [35,29.7717,133,1.5980]
-  end  
+  end 
+=end 
   
   # 宝の距離 [m] 計算．北緯 35 度での値で計算!!  入力された緯度経度を利用．
   def calcDist( posGet, pos )
